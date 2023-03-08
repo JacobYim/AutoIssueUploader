@@ -37,14 +37,28 @@ def get_project_options(driver) :
         'issuetypes' : issuetype_options
     }
 
-def get_project_input_fields_json(driver, num_recommend_opton = -1) :
+def get_project_input_fields_json(driver, project_name, issuetypes, num_recommend_opton = -1) :
     
     tab = driver.find_element(By.ID, "tab-0")
     # field_items = tab.find_elements(By.CLASS_NAME, "field-group") + tab.find_elements(By.TAG_NAME, "fieldset")
     # field_selet_items = list(map(lambda x : {x.text.split('\n')[0]: x.find_elements(By.TAG_NAME, 'select')}, field_items))
     children = tab.find_elements(By.XPATH, "*")
 
-    input_form = {}
+    input_form = {
+        "Project" : {
+            'type' : 'select',
+            'xpath' : None,
+            'options' : [project_name],
+            'required' : True 
+        },
+        "Issue Type" : {
+            'type' : 'select',
+            'xpath' : None,
+            'options' : [issuetypes],
+            'required' : True 
+        },
+
+    }
 
     for child in children :
 
@@ -180,40 +194,6 @@ def get_project_input_fields_json(driver, num_recommend_opton = -1) :
 
     return input_form
 
-# def save_as_xlsx(input_form) :
-#     workbook = xlsxwriter.Workbook('data_validate.xlsx')
-#     worksheet = workbook.add_worksheet()
-
-#     # worksheet.write(0, 0, '항목')
-
-#     # column numbering
-#     for i in range(1,100) :
-#         worksheet.write(0, i, str(i))
-#         worksheet.set_column("A:ZZ", 30)
-
-#     for i, key in enumerate(input_form.keys()) :
-
-#         # set field name
-#         worksheet.write(i+1, 0, key, workbook.add_format({'align': 'center', 'valign': 'vcenter'}))
-
-#         # required 
-#         if input_form[key]['required'] :
-#             worksheet.set_row(i+1, 15, workbook.add_format({'bold': True, 'bg_color': 'yellow'}))
-
-#         # set validation
-#         if input_form[key]['type'] in ['select', 'rendering select', 'fieldset checkbox', 'aui-field-labelpicker'] :
-#             worksheet.data_validation('B{}:ZZ{}'.format(i+2, i+2), {
-#                 'validate' : 'list',
-#                 'error_type' : 'information',
-#                 'source' : list(map(lambda x : str(x), input_form[key]['options']))
-#             })
-        
-#         # set textarea hight
-#         if input_form[key]['type'] == 'textarea' :
-#             worksheet.set_row(i+1, 100)
-
-#     workbook.close()
-
 def save_as_xlsx(input_form, filename) :
 
     workbook = xlsxwriter.Workbook('{}.xlsx'.format(filename))
@@ -297,14 +277,14 @@ def save_as_xlsx(input_form, filename) :
     
     workbook.close()
 
-
 if __name__ == "__main__" :
 
     ID = "10896665"
     PW = "A12345678!"
     project_name = ""
+    issuetypes = ""
     save_json = True
-    show_brower = False
+    show_brower = True
 
     now = datetime.now() 
     chromedriver_autoinstaller.install()
@@ -317,10 +297,14 @@ if __name__ == "__main__" :
     enter_to_mcols(driver, ID, PW)
     press_create_btn(driver)
     options = get_project_options(driver)
+
     if project_name == "" :
         project_name = options['projects'][3]
+    if issuetypes == "" :
+        issuetypes = options['issuetypes'][0]
+    
     set_project(driver, project_name, options['issuetypes'][0])
-    json_file = get_project_input_fields_json(driver, num_recommend_opton=10)    
+    json_file = get_project_input_fields_json(driver, project_name, issuetypes, num_recommend_opton=10)    
 
     filename = project_name+"_"+now.strftime("%m-%d-%Y-%H-%M-%S")
     if save_json :
