@@ -37,7 +37,7 @@ def get_project_options(driver) :
         'issuetypes' : issuetype_options
     }
 
-def get_project_input_fields_json(driver, project_name, issuetypes, num_recommend_opton = -1) :
+def get_project_input_fields_json(driver, project_name, option, num_recommend_opton = -1) :
     
     tab = driver.find_element(By.ID, "tab-0")
     # field_items = tab.find_elements(By.CLASS_NAME, "field-group") + tab.find_elements(By.TAG_NAME, "fieldset")
@@ -45,16 +45,16 @@ def get_project_input_fields_json(driver, project_name, issuetypes, num_recommen
     children = tab.find_elements(By.XPATH, "*")
 
     input_form = {
-        "Project" : {
+        "roject" : {
             'type' : 'select',
             'xpath' : None,
             'options' : [project_name],
             'required' : True 
         },
-        "Issue Type" : {
+        "issue_type" : {
             'type' : 'select',
             'xpath' : None,
-            'options' : [issuetypes],
+            'options' : [option],
             'required' : True 
         },
 
@@ -191,6 +191,13 @@ def get_project_input_fields_json(driver, project_name, issuetypes, num_recommen
             'options' : options,
             'required' : required 
         }
+        if input_type in ['cascading select', 'issue-link-edit'] :
+            input_form[field_name+'_sub'] = {
+            'type' : input_type,
+            'xpath' : xpath,
+            'options' : options,
+            'required' : required 
+        }
 
     return input_form
 
@@ -282,9 +289,9 @@ if __name__ == "__main__" :
     ID = "10896665"
     PW = "A12345678!"
     project_name = ""
-    issuetypes = ""
+    issue_type_name = ""
     save_json = True
-    show_brower = True
+    show_brower = False
 
     now = datetime.now() 
     chromedriver_autoinstaller.install()
@@ -297,14 +304,12 @@ if __name__ == "__main__" :
     enter_to_mcols(driver, ID, PW)
     press_create_btn(driver)
     options = get_project_options(driver)
-
     if project_name == "" :
         project_name = options['projects'][3]
-    if issuetypes == "" :
-        issuetypes = options['issuetypes'][0]
-    
+    if issue_type_name == "" :
+        issue_type_name = options['projects'][3]
     set_project(driver, project_name, options['issuetypes'][0])
-    json_file = get_project_input_fields_json(driver, project_name, issuetypes, num_recommend_opton=10)    
+    json_file = get_project_input_fields_json(driver, project_name, issue_type_name, num_recommend_opton=10)    
 
     filename = project_name+"_"+now.strftime("%m-%d-%Y-%H-%M-%S")
     if save_json :
