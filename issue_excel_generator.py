@@ -56,8 +56,7 @@ def get_project_input_fields_json(driver, project_name, option, num_recommend_op
             'xpath' : None,
             'options' : [option],
             'required' : True 
-        },
-
+        }
     }
 
     for child in children :
@@ -76,8 +75,6 @@ def get_project_input_fields_json(driver, project_name, option, num_recommend_op
 
         child_class = child.get_attribute('class')
         if 'field-group' in child_class :
-
-            i = child
 
             field_name = child.find_element(By.TAG_NAME, 'label').get_attribute("innerText").split('\n')[0]
 
