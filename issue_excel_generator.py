@@ -45,13 +45,13 @@ def get_project_input_fields_json(driver, project_name, option, num_recommend_op
     children = tab.find_elements(By.XPATH, "*")
 
     input_form = {
-        "roject" : {
+        "Project" : {
             'type' : 'select',
             'xpath' : None,
             'options' : [project_name],
             'required' : True 
         },
-        "issue_type" : {
+        "Issue Type" : {
             'type' : 'select',
             'xpath' : None,
             'options' : [option],
@@ -288,8 +288,8 @@ if __name__ == "__main__" :
 
     ID = "10896665"
     PW = "A12345678!"
-    project_name = ""
-    issue_type_name = ""
+    project_name = "HMC OEM 내비게이션 개발 협업 (HMCOEM)"
+    issue_type_name = "Bug"
     save_json = True
     show_brower = False
 
