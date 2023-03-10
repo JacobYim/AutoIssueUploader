@@ -7,6 +7,7 @@ import time
 import json
 from datetime import datetime
 import xlsxwriter
+import tkinter as tk
 
 def set_project(driver, project_option, issuetype_option) :
 
@@ -39,7 +40,10 @@ def get_project_options(driver) :
 
 def get_project_input_fields_json(driver, project_name, option, num_recommend_opton = -1) :
     
-    tab = driver.find_element(By.ID, "tab-0")
+    if option == 'Bug' :
+        tab = driver.find_element(By.ID, "tab-0")
+    else :
+        tab = driver.find_element(By.CLASS_NAME, "content")
     # field_items = tab.find_elements(By.CLASS_NAME, "field-group") + tab.find_elements(By.TAG_NAME, "fieldset")
     # field_selet_items = list(map(lambda x : {x.text.split('\n')[0]: x.find_elements(By.TAG_NAME, 'select')}, field_items))
     children = tab.find_elements(By.XPATH, "*")
@@ -210,7 +214,7 @@ def save_as_xlsx(input_form, filename) :
         worksheet.write(0, i, str(i))
         worksheet.set_column("A:ZZ", 30)
 
-    worksheet.write_column('A2', list(input_form.keys())+['log', 'attachments', 'upload status'])
+    worksheet.write_column('A2', list(input_form.keys())+['log', 'attachment_files', 'upload status', 'issue_tag'])
 
     for i, key in enumerate(input_form.keys()) :
 
@@ -281,6 +285,81 @@ def save_as_xlsx(input_form, filename) :
     
     workbook.close()
 
+def project_excel_download(ID, PW, project_name, issue_type_name, show_browser, save_json=False, logs=None) :
+    
+    now = datetime.now()
+    process_name = 'PROJECT EXCEL DOWNLOAD : {}_{}_{}'.format(project_name, issue_type_name, now.strftime("%m-%d-%Y-%H-%M-%S"))
+
+    if logs :
+        logs.insert(tk.END, "[{}] Form downloading started.\n".format(process_name))
+        logs.update_idletasks()
+    
+     
+    chromedriver_autoinstaller.install()
+    options = Options()
+    if not show_browser :
+        options.headless = True
+
+    try :
+        if logs :
+            logs.insert(tk.END, "[{}] Browser Open\n".format(process_name))
+            logs.update_idletasks()
+        driver = webdriver.Chrome('./chromedriver', chrome_options=options)
+        driver.get("https://mcols.autoever.com/secure/Dashboard.jspa")
+        if logs :
+            logs.insert(tk.END, "[{}] Successfully Get to mcols.autoever.com\n".format(process_name))
+            logs.update_idletasks()
+        enter_to_mcols(driver, ID, PW)
+        if logs :
+            logs.insert(tk.END, "[{}] Successfully login\n".format(process_name))
+            logs.update_idletasks()
+        press_create_btn(driver)
+        if logs :
+            logs.insert(tk.END, "[{}] Successfully open format\n".format(process_name))
+            logs.update_idletasks()
+    except Exception as e :
+        if logs :
+            logs.insert(tk.END, "[{}] Error occured to get mcols.autoever.com\n please check network status or VPN status, userid and password again. \n Error : {}\n".format(process_name, e))
+            logs.update_idletasks()
+        return 
+
+    try :
+        options = get_project_options(driver)
+        set_project(driver, project_name, issue_type_name)
+        json_file = get_project_input_fields_json(driver, project_name, issue_type_name, num_recommend_opton=10)
+        if logs :
+            logs.insert(tk.END, "[{}] Success to parse the form.\n".format(process_name))
+            logs.update_idletasks()    
+    except Exception as e :
+        if logs :
+            logs.insert(tk.END, "[{}] Something Went wrong to parse the form.\nError : {}\n".format(process_name, e))
+            logs.update_idletasks()
+        return 
+
+    try :
+        filename = project_name+"_"+now.strftime("%m-%d-%Y-%H-%M-%S")
+        if save_json :
+            savable_json = json_file.copy()
+            for key in savable_json.keys() :
+                savable_json[key].pop('xpath')
+            with open("{}.json".format(filename), "w", encoding='utf-8') as outfile:
+                json.dump(savable_json, outfile, indent="\t", ensure_ascii=False)
+
+        save_as_xlsx(json_file, filename)
+        if logs :
+            logs.insert(tk.END, "[{}] Success to write excel file ({}.xlsx).\n".format(process_name, filename))
+            logs.update_idletasks()
+        
+    except Exception as e :
+        if logs :
+            logs.insert(tk.END, "[{}] Something Went wrong to write excel file.\nError : {}\n".format(process_name, e))
+            logs.update_idletasks()
+        return 
+
+    if logs :
+        logs.insert(tk.END,"[{}] Form downloaded successfully.\n".format(process_name))
+        logs.update_idletasks()
+        
 if __name__ == "__main__" :
 
     ID = "10896665"
@@ -288,33 +367,6 @@ if __name__ == "__main__" :
     project_name = "HMC OEM 내비게이션 개발 협업 (HMCOEM)"
     issue_type_name = "Bug"
     save_json = True
-    show_brower = False
+    show_browser = False
 
-    now = datetime.now() 
-    chromedriver_autoinstaller.install()
-    options = Options()
-    if not show_brower :
-        options.headless = True
-    driver = webdriver.Chrome('./chromedriver', chrome_options=options)
-    driver.get("https://mcols.autoever.com/secure/Dashboard.jspa")
-
-    enter_to_mcols(driver, ID, PW)
-    press_create_btn(driver)
-    options = get_project_options(driver)
-    if project_name == "" :
-        project_name = options['projects'][3]
-    if issue_type_name == "" :
-        issue_type_name = options['projects'][3]
-    set_project(driver, project_name, options['issuetypes'][0])
-    json_file = get_project_input_fields_json(driver, project_name, issue_type_name, num_recommend_opton=10)    
-
-    filename = project_name+"_"+now.strftime("%m-%d-%Y-%H-%M-%S")
-    if save_json :
-        savable_json = json_file.copy()
-        for key in savable_json.keys() :
-            savable_json[key].pop('xpath')
-        with open("{}.json".format(filename), "w", encoding='utf-8') as outfile:
-            json.dump(savable_json, outfile, indent="\t", ensure_ascii=False)
-
-    save_as_xlsx(json_file, filename)
-    
+    project_excel_download(ID, PW, project_name, issue_type_name, show_browser, save_json=False)

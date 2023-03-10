@@ -1,6 +1,10 @@
 import tkinter as tk
 from tkinter import filedialog, scrolledtext, messagebox
 import pickle
+from issue_excel_generator import project_excel_download
+from issue_uploader import upload_multithread
+import threading
+
 
 class Uploader:
     def __init__(self, root):
@@ -19,10 +23,17 @@ class Uploader:
 
         # Load saved credentials if file exists
         try:
-            with open("credentials.pickle", "rb") as f:
+            with open(".credentials.pickle", "rb") as f:
                 saved_credentials = pickle.load(f)
-                self.username.set(saved_credentials.get("username"))
-                self.password.set(saved_credentials.get("password"))
+                if saved_credentials.get('save_credentials') :
+                    self.username.set(saved_credentials.get("username"))
+                    self.password.set(saved_credentials.get("password"))
+                    self.auto_upload.set(saved_credentials.get("auto_upload"))
+                    self.show_browser.set(saved_credentials.get("show_browser"))
+                    self.save_credentials.set(saved_credentials.get("save_credentials"))
+                    self.num_threads.set(saved_credentials.get("num_threads"))
+                    self.project_name.set(saved_credentials.get("project_name"))
+                    self.issue_type.set(saved_credentials.get("issue_type"))
         except FileNotFoundError:
             pass
 
@@ -42,6 +53,7 @@ class Uploader:
         tk.Button(group2_frame, text="Select Excel file", command=self.select_file).grid(row=0, column=0, padx=10, pady=5, sticky="w")
         tk.Label(group2_frame, text="Number of threads:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
         tk.Entry(group2_frame, textvariable=self.num_threads).grid(row=1, column=1, padx=10, pady=5)
+        tk.Checkbutton(group2_frame, text="auto upload", variable=self.auto_upload).grid(row=2, column=0, columnspan=2, padx=10, pady=5, sticky="w")
 
         # Upload button
         tk.Button(group2_frame, text="Upload", command=self.upload).grid(row=0, column=1, padx=10, pady=5, sticky="e")
@@ -87,19 +99,60 @@ class Uploader:
 
         # Save credentials if requested
         if save_credentials:
-            with open("credentials.pickle", "wb") as f:
-                pickle.dump({"username": username, "password": password}, f)
+            with open(".credentials.pickle", "wb") as f:
+                pickle.dump({
+                    "username": username, 
+                    "password": password, 
+                    "save_credentials": save_credentials, 
+                    "auto_upload" : auto_upload,
+                    "show_browser" : show_browser,
+                    "num_threads" : num_threads,
+                    "project_name" : project_name,
+                    "issue_type" : issue_type
+                    },
+                    f
+                )
 
         # Perform upload
-        self.log.insert(tk.END, "Starting upload...\n")
-        # TODO: Implement upload process
-        self.log.insert(tk.END, "Upload complete.\n")
+        try :
+            t = threading.Thread(target=upload_multithread, args=(username, password, self.filename, num_threads, auto_upload, show_browser, self.log))
+            t.start()
+        except Exception as e :
+            self.log.insert(tk.END,"Downloader Fail with Error : {}\n".format(e))
 
     def download_form(self):
         """Download an Excel form."""
         # TODO: Implement download form process
-        messagebox.showinfo("Download form", "Form downloaded successfully.")
+        username = self.username.get()
+        password = self.password.get()
+        auto_upload = self.auto_upload.get()
+        show_browser = self.show_browser.get()
+        save_credentials = self.save_credentials.get()
+        num_threads = int(self.num_threads.get())
+        project_name = self.project_name.get()
+        issue_type = self.issue_type.get()
 
+        # Save credentials if requested
+        if save_credentials:
+            with open(".credentials.pickle", "wb") as f:
+                pickle.dump({
+                    "username": username, 
+                    "password": password, 
+                    "save_credentials": save_credentials, 
+                    "auto_upload" : auto_upload,
+                    "show_browser" : show_browser,
+                    "num_threads" : num_threads,
+                    "project_name" : project_name,
+                    "issue_type" : issue_type
+                    },
+                    f
+                )
+        try :
+            t = threading.Thread(target=project_excel_download, args=(username, password, project_name, issue_type, show_browser, False, self.log))
+            t.start()
+        except Exception as e :
+            self.log.insert(tk.END,"Downloader Fail with Error : {}\n".format(e))
+            
 if __name__ == "__main__":
     root = tk.Tk()
     uploader = Uploader(root)
